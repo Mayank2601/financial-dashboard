@@ -8,7 +8,7 @@ import streamlit as st
 import pandas as pd
 import io
 from typing import List, Optional, Tuple
-import plotly.express as px
+import plotly.graph_objects as go
 
 # ---------------------------------------------------------------------------
 # Expected column names (strip and match flexibly)
@@ -481,21 +481,13 @@ def main():
         monthly_ie = monthly_income.merge(monthly_expense, on="month", how="outer").fillna(0)
         if not monthly_ie.empty:
             monthly_ie = monthly_ie.sort_values("month").reset_index(drop=True)
-            monthly_ie["income"] = monthly_ie["income"].apply(lambda x: float(x))
-            monthly_ie["expense"] = monthly_ie["expense"].apply(lambda x: float(x))
-            monthly_ie_long = monthly_ie.melt(id_vars=["month"], value_vars=["income", "expense"], var_name="Type", value_name="amount")
-            monthly_ie_long["amount"] = monthly_ie_long["amount"].apply(lambda x: float(x))
-            fig_monthly = px.bar(
-                monthly_ie_long,
-                x="month",
-                y="amount",
-                color="Type",
-                title="Monthly income vs expense",
-                labels={"month": "Month", "amount": "Amount (₹)"},
-                barmode="group",
-                color_discrete_map={"income": "#2ecc71", "expense": "#e74c3c"},
-            )
-            fig_monthly.update_layout(xaxis_tickangle=-45)
+            months_list = monthly_ie["month"].astype(str).tolist()
+            income_list = [float(x) for x in monthly_ie["income"]]
+            expense_list = [float(x) for x in monthly_ie["expense"]]
+            fig_monthly = go.Figure()
+            fig_monthly.add_trace(go.Bar(x=months_list, y=income_list, name="income", marker_color="#2ecc71"))
+            fig_monthly.add_trace(go.Bar(x=months_list, y=expense_list, name="expense", marker_color="#e74c3c"))
+            fig_monthly.update_layout(barmode="group", title="Monthly income vs expense", xaxis_tickangle=-45, yaxis_title="Amount (₹)", xaxis_title="Month")
             st.plotly_chart(fig_monthly, use_container_width=True)
         # Cost head pie chart (exclude Other; expense excludes NEFT DR-CNRB0002374)
         expense_summary = df[expense_mask].copy()
@@ -506,16 +498,10 @@ def main():
         pie_summary = pie_summary[pie_summary > 0]
         if not pie_summary.empty:
             st.subheader("Cost head distribution")
-            df_pie_summary = pie_summary.reset_index()
-            df_pie_summary.columns = ["cost_head", "amount"]
-            df_pie_summary["amount"] = df_pie_summary["amount"].apply(lambda x: float(x))
-            fig_pie_summary = px.pie(
-                df_pie_summary,
-                values="amount",
-                names="cost_head",
-                title="Cost head distribution",
-                color_discrete_sequence=px.colors.qualitative.Set3,
-            )
+            pie_labels = [str(x) for x in pie_summary.index]
+            pie_values = [float(x) for x in pie_summary.values]
+            fig_pie_summary = go.Figure(data=[go.Pie(labels=pie_labels, values=pie_values, title="Cost head distribution")])
+            fig_pie_summary.update_layout(title="Cost head distribution")
             st.plotly_chart(fig_pie_summary, use_container_width=True)
         # Customer analysis (UPI + NEFT + IMPS from income)
         st.subheader("Customer analysis")
@@ -558,16 +544,10 @@ def main():
         cash_vs_digital = income_df.groupby("income_type")["credit"].sum()
         if not cash_vs_digital.empty:
             st.subheader("Cash vs Digital")
-            df_cash = cash_vs_digital.reset_index()
-            df_cash.columns = ["income_type", "amount"]
-            df_cash["amount"] = df_cash["amount"].apply(lambda x: float(x))
-            fig_cash = px.pie(
-                df_cash,
-                values="amount",
-                names="income_type",
-                title="Cash vs Digital income",
-                color_discrete_sequence=px.colors.qualitative.Set2,
-            )
+            cash_labels = [str(x) for x in cash_vs_digital.index]
+            cash_values = [float(x) for x in cash_vs_digital.values]
+            fig_cash = go.Figure(data=[go.Pie(labels=cash_labels, values=cash_values)])
+            fig_cash.update_layout(title="Cash vs Digital income")
             st.plotly_chart(fig_cash, use_container_width=True)
 
         # Customer analysis (UPI + NEFT + IMPS: unique and repeat)
@@ -656,15 +636,10 @@ def main():
                 matches_inc["month"] = pd.to_datetime(matches_inc["date"]).dt.to_period("M").astype(str)
                 monthly_inc = matches_inc.groupby("month")["credit"].sum().reset_index()
                 monthly_inc = monthly_inc.sort_values("month").reset_index(drop=True)
-                monthly_inc["credit"] = monthly_inc["credit"].apply(lambda x: float(x))
-                fig_inc_kw = px.bar(
-                    monthly_inc,
-                    x="month",
-                    y="credit",
-                    title=f"Monthly income for keyword: {income_keyword.strip()}",
-                    labels={"credit": "Amount (₹)", "month": "Month"},
-                )
-                fig_inc_kw.update_layout(xaxis_tickangle=-45, showlegend=False)
+                inc_months = monthly_inc["month"].astype(str).tolist()
+                inc_amounts = [float(x) for x in monthly_inc["credit"]]
+                fig_inc_kw = go.Figure(data=[go.Bar(x=inc_months, y=inc_amounts)])
+                fig_inc_kw.update_layout(title=f"Monthly income for keyword: {income_keyword.strip()}", xaxis_tickangle=-45, xaxis_title="Month", yaxis_title="Amount (₹)")
                 st.plotly_chart(fig_inc_kw, use_container_width=True)
                 matches_inc["date"] = pd.to_datetime(matches_inc["date"]).dt.strftime("%Y-%m-%d")
                 matches_inc_display = matches_inc.rename(columns={"narration": "Narration", "credit": "Amount"})
@@ -735,34 +710,28 @@ def main():
         monthly_by_head = monthly_by_head[monthly_by_head["cost_head"].isin(cost_heads_only)]
         if not monthly_by_head.empty:
             monthly_by_head = monthly_by_head.sort_values("month").reset_index(drop=True)
-            monthly_by_head["debit"] = monthly_by_head["debit"].apply(lambda x: float(x))
-            fig_costs = px.bar(
-                monthly_by_head,
-                x="month",
-                y="debit",
-                color="cost_head",
-                title="Monthly cost by cost head",
-                labels={"debit": "Amount (₹)", "month": "Month", "cost_head": "Cost head"},
-                barmode="stack",
-                color_discrete_sequence=px.colors.qualitative.Set3,
-            )
-            fig_costs.update_layout(xaxis_tickangle=-45)
+            months_list = monthly_by_head["month"].astype(str).unique().tolist()
+            cost_heads_list = [c for c, _ in COST_HEADS]
+            fig_costs = go.Figure()
+            colors = ["#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5"]
+            for i, ch in enumerate(cost_heads_list):
+                subset = monthly_by_head[monthly_by_head["cost_head"] == ch]
+                if subset.empty:
+                    continue
+                by_month = subset.set_index("month")["debit"].reindex(months_list).fillna(0)
+                y_vals = [float(x) for x in by_month.values]
+                fig_costs.add_trace(go.Bar(x=months_list, y=y_vals, name=ch, marker_color=colors[i % len(colors)]))
+            fig_costs.update_layout(barmode="stack", title="Monthly cost by cost head", xaxis_tickangle=-45, xaxis_title="Month", yaxis_title="Amount (₹)")
             st.plotly_chart(fig_costs, use_container_width=True)
         # Pie chart for cost heads (exclude Other)
         cost_heads_only = [name for name, _ in COST_HEADS]
         pie_totals = cost_totals[cost_totals.index.isin(cost_heads_only)]
         pie_totals = pie_totals[pie_totals > 0]
         if not pie_totals.empty:
-            df_pie = pie_totals.reset_index()
-            df_pie.columns = ["cost_head", "amount"]
-            df_pie["amount"] = df_pie["amount"].apply(lambda x: float(x))
-            fig_pie = px.pie(
-                df_pie,
-                values="amount",
-                names="cost_head",
-                title="Cost head distribution",
-                color_discrete_sequence=px.colors.qualitative.Set3,
-            )
+            pie_labels = [str(x) for x in pie_totals.index]
+            pie_values = [float(x) for x in pie_totals.values]
+            fig_pie = go.Figure(data=[go.Pie(labels=pie_labels, values=pie_values)])
+            fig_pie.update_layout(title="Cost head distribution")
             st.plotly_chart(fig_pie, use_container_width=True)
         # Search by cost keyword (below pie chart)
         st.subheader("Search by cost keyword")
@@ -784,15 +753,10 @@ def main():
                 matches["month"] = pd.to_datetime(matches["date"]).dt.to_period("M").astype(str)
                 monthly_kw = matches.groupby("month")["debit"].sum().reset_index()
                 monthly_kw = monthly_kw.sort_values("month").reset_index(drop=True)
-                monthly_kw["debit"] = monthly_kw["debit"].apply(lambda x: float(x))
-                fig_kw = px.bar(
-                    monthly_kw,
-                    x="month",
-                    y="debit",
-                    title=f"Monthly expense for keyword: {cost_keyword.strip()}",
-                    labels={"debit": "Amount (₹)", "month": "Month"},
-                )
-                fig_kw.update_layout(xaxis_tickangle=-45, showlegend=False)
+                kw_months = monthly_kw["month"].astype(str).tolist()
+                kw_amounts = [float(x) for x in monthly_kw["debit"]]
+                fig_kw = go.Figure(data=[go.Bar(x=kw_months, y=kw_amounts)])
+                fig_kw.update_layout(title=f"Monthly expense for keyword: {cost_keyword.strip()}", xaxis_tickangle=-45, xaxis_title="Month", yaxis_title="Amount (₹)")
                 st.plotly_chart(fig_kw, use_container_width=True)
                 matches["date"] = pd.to_datetime(matches["date"]).dt.strftime("%Y-%m-%d")
                 matches_display = matches.rename(columns={"narration": "Narration", "debit": "Amount"})

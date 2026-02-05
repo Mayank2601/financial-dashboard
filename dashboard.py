@@ -42,6 +42,15 @@ COST_HEADS = [
     ("Miscellaneous", ["ration", "fee", "medical", "ghee", "fees", "netflix", "amazon", "blinkit", "swiggy", "airtel", "jio", "vikram", "ROOPBASANT"]),
 ]
 
+# Same colors for cost heads across all bar and pie charts (order matches COST_HEADS)
+COST_HEAD_COLORS = [
+    "#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5",
+]
+COST_HEAD_COLOR_MAP = {name: COST_HEAD_COLORS[i] for i, (name, _) in enumerate(COST_HEADS)}
+
+# Cash = red, Digital = green
+CASH_DIGITAL_COLORS = {"Cash": "#e74c3c", "Digital": "#2ecc71"}
+
 
 def _upi_customer_id(narration: str) -> Optional[str]:
     """
@@ -382,9 +391,13 @@ def format_currency(amount: float) -> str:
 
 
 def _dataframe_for_display(df: pd.DataFrame) -> pd.DataFrame:
-    """Convert to dtypes safe for Streamlit (avoids Arrow LargeUtf8 serialization error)."""
+    """Convert to dtypes safe for Streamlit (avoids Arrow LargeUtf8 serialization error). Reset index and add S.No."""
     df = df.copy()
+    df = df.reset_index(drop=True)
+    df.insert(0, "S.No.", range(1, len(df) + 1))
     for col in df.columns:
+        if col == "S.No.":
+            continue
         if not pd.api.types.is_numeric_dtype(df[col]) and not pd.api.types.is_datetime64_any_dtype(df[col]):
             df[col] = df[col].astype(object)
     return df
@@ -500,7 +513,8 @@ def main():
             st.subheader("Cost head distribution")
             pie_labels = [str(x) for x in pie_summary.index]
             pie_values = [float(x) for x in pie_summary.values]
-            fig_pie_summary = go.Figure(data=[go.Pie(labels=pie_labels, values=pie_values, title="Cost head distribution")])
+            pie_colors = [COST_HEAD_COLOR_MAP.get(lbl, "#999") for lbl in pie_labels]
+            fig_pie_summary = go.Figure(data=[go.Pie(labels=pie_labels, values=pie_values, marker_colors=pie_colors)])
             fig_pie_summary.update_layout(title="Cost head distribution")
             st.plotly_chart(fig_pie_summary, use_container_width=True)
         # Customer analysis (UPI + NEFT + IMPS from income)
@@ -546,7 +560,8 @@ def main():
             st.subheader("Cash vs Digital")
             cash_labels = [str(x) for x in cash_vs_digital.index]
             cash_values = [float(x) for x in cash_vs_digital.values]
-            fig_cash = go.Figure(data=[go.Pie(labels=cash_labels, values=cash_values)])
+            cash_pie_colors = [CASH_DIGITAL_COLORS.get(lbl, "#999") for lbl in cash_labels]
+            fig_cash = go.Figure(data=[go.Pie(labels=cash_labels, values=cash_values, marker_colors=cash_pie_colors)])
             fig_cash.update_layout(title="Cash vs Digital income")
             st.plotly_chart(fig_cash, use_container_width=True)
 
@@ -713,14 +728,13 @@ def main():
             months_list = monthly_by_head["month"].astype(str).unique().tolist()
             cost_heads_list = [c for c, _ in COST_HEADS]
             fig_costs = go.Figure()
-            colors = ["#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5"]
             for i, ch in enumerate(cost_heads_list):
                 subset = monthly_by_head[monthly_by_head["cost_head"] == ch]
                 if subset.empty:
                     continue
                 by_month = subset.set_index("month")["debit"].reindex(months_list).fillna(0)
                 y_vals = [float(x) for x in by_month.values]
-                fig_costs.add_trace(go.Bar(x=months_list, y=y_vals, name=ch, marker_color=colors[i % len(colors)]))
+                fig_costs.add_trace(go.Bar(x=months_list, y=y_vals, name=ch, marker_color=COST_HEAD_COLORS[i % len(COST_HEAD_COLORS)]))
             fig_costs.update_layout(barmode="stack", title="Monthly cost by cost head", xaxis_tickangle=-45, xaxis_title="Month", yaxis_title="Amount (₹)")
             st.plotly_chart(fig_costs, use_container_width=True)
         # Pie chart for cost heads (exclude Other)
@@ -730,7 +744,8 @@ def main():
         if not pie_totals.empty:
             pie_labels = [str(x) for x in pie_totals.index]
             pie_values = [float(x) for x in pie_totals.values]
-            fig_pie = go.Figure(data=[go.Pie(labels=pie_labels, values=pie_values)])
+            pie_colors = [COST_HEAD_COLOR_MAP.get(lbl, "#999") for lbl in pie_labels]
+            fig_pie = go.Figure(data=[go.Pie(labels=pie_labels, values=pie_values, marker_colors=pie_colors)])
             fig_pie.update_layout(title="Cost head distribution")
             st.plotly_chart(fig_pie, use_container_width=True)
         # Search by cost keyword (below pie chart)

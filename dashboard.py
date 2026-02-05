@@ -481,7 +481,7 @@ def main():
                 color_discrete_map={"income": "#2ecc71", "expense": "#e74c3c"},
             )
             fig_monthly.update_layout(xaxis_tickangle=-45)
-            st.plotly_chart(fig_monthly, width="stretch")
+            st.plotly_chart(fig_monthly, use_container_width=True)
         # Cost head pie chart (exclude Other; expense excludes NEFT DR-CNRB0002374)
         expense_summary = df[expense_mask].copy()
         expense_summary["cost_head"] = expense_summary["narration"].apply(_assign_cost_head)
@@ -497,7 +497,7 @@ def main():
                 title="Cost head distribution",
                 color_discrete_sequence=px.colors.qualitative.Set3,
             )
-            st.plotly_chart(fig_pie_summary, width="stretch")
+            st.plotly_chart(fig_pie_summary, use_container_width=True)
         # Customer analysis (UPI + NEFT + IMPS from income)
         st.subheader("Customer analysis")
         income_summary = df[df["credit"] > 0].copy()
@@ -545,7 +545,7 @@ def main():
                 title="Cash vs Digital income",
                 color_discrete_sequence=px.colors.qualitative.Set2,
             )
-            st.plotly_chart(fig_cash, width="stretch")
+            st.plotly_chart(fig_cash, use_container_width=True)
 
         # Customer analysis (UPI + NEFT + IMPS: unique and repeat)
         st.subheader("Customer analysis")
@@ -612,7 +612,7 @@ def main():
             customer_display = customer_display.rename(
                 columns={"customer_id": "Customer ID", "type": "Type", "transactions": "Transactions", "total_amount": "Total amount"}
             )
-            st.dataframe(customer_display, width="stretch", hide_index=True)
+            st.dataframe(customer_display, use_container_width=True, hide_index=True)
 
         # Search by keyword (income)
         st.subheader("Search by keyword")
@@ -640,14 +640,14 @@ def main():
                     labels={"credit": "Amount (₹)", "month": "Month"},
                 )
                 fig_inc_kw.update_layout(xaxis_tickangle=-45, showlegend=False)
-                st.plotly_chart(fig_inc_kw, width="stretch")
+                st.plotly_chart(fig_inc_kw, use_container_width=True)
                 matches_inc["date"] = pd.to_datetime(matches_inc["date"]).dt.strftime("%Y-%m-%d")
                 matches_inc_display = matches_inc.rename(columns={"narration": "Narration", "credit": "Amount"})
                 matches_inc_display["Amount"] = matches_inc_display["Amount"].apply(format_currency)
                 matches_inc_display = matches_inc_display.rename(columns={"date": "Date"})
                 st.caption(f"**{len(matches_inc)}** transaction(s) matching **{income_keyword.strip()}**.")
-                st.dataframe(matches_inc_display[["Date", "Narration", "Amount"]], width="stretch", hide_index=True)
-        st.divider()
+                st.dataframe(matches_inc_display[["Date", "Narration", "Amount"]], use_container_width=True, hide_index=True)
+        st.markdown("---")
 
         income = income_df[["date", "narration", "credit"]].copy()
         income = income.rename(columns={"narration": "Narration", "credit": "Amount"})
@@ -671,7 +671,7 @@ def main():
         income_display["Amount"] = income_display["Amount"].apply(format_currency)
         income_display = income_display.rename(columns={"date": "Date"})
         st.caption(f"Showing all **{len(income_display)}** deposit transactions.")
-        st.dataframe(income_display, width="stretch", hide_index=True)
+        st.dataframe(income_display, use_container_width=True, hide_index=True)
         return
 
     # ---- Page: Expense ----
@@ -720,7 +720,7 @@ def main():
                 color_discrete_sequence=px.colors.qualitative.Set3,
             )
             fig_costs.update_layout(xaxis_tickangle=-45)
-            st.plotly_chart(fig_costs, width="stretch")
+            st.plotly_chart(fig_costs, use_container_width=True)
         # Pie chart for cost heads (exclude Other)
         cost_heads_only = [name for name, _ in COST_HEADS]
         pie_totals = cost_totals[cost_totals.index.isin(cost_heads_only)]
@@ -732,7 +732,7 @@ def main():
                 title="Cost head distribution",
                 color_discrete_sequence=px.colors.qualitative.Set3,
             )
-            st.plotly_chart(fig_pie, width="stretch")
+            st.plotly_chart(fig_pie, use_container_width=True)
         # Search by cost keyword (below pie chart)
         st.subheader("Search by cost keyword")
         cost_keyword = st.text_input(
@@ -760,14 +760,14 @@ def main():
                     labels={"debit": "Amount (₹)", "month": "Month"},
                 )
                 fig_kw.update_layout(xaxis_tickangle=-45, showlegend=False)
-                st.plotly_chart(fig_kw, width="stretch")
+                st.plotly_chart(fig_kw, use_container_width=True)
                 matches["date"] = pd.to_datetime(matches["date"]).dt.strftime("%Y-%m-%d")
                 matches_display = matches.rename(columns={"narration": "Narration", "debit": "Amount"})
                 matches_display["Amount"] = matches_display["Amount"].apply(format_currency)
                 matches_display = matches_display.rename(columns={"date": "Date"})
                 st.caption(f"**{len(matches)}** transaction(s) matching **{cost_keyword.strip()}**.")
-                st.dataframe(matches_display[["Date", "Narration", "Amount"]], width="stretch", hide_index=True)
-        st.divider()
+                st.dataframe(matches_display[["Date", "Narration", "Amount"]], use_container_width=True, hide_index=True)
+        st.markdown("---")
 
         expense_sort = st.radio(
             "Sort by",
@@ -788,17 +788,17 @@ def main():
         expense_display["Amount"] = expense_display["Amount"].apply(format_currency)
         expense_display = expense_display.rename(columns={"date": "Date"})
         st.caption(f"Showing all **{len(expense_display)}** withdrawal transactions.")
-        st.dataframe(expense_display, width="stretch", hide_index=True)
+        st.dataframe(expense_display, use_container_width=True, hide_index=True)
 
         # Cost heads vs keywords reference
-        st.divider()
+        st.markdown("---")
         st.subheader("Cost heads vs keywords")
         cost_head_map = pd.DataFrame(
             [(name, ", ".join(keywords)) for name, keywords in COST_HEADS],
             columns=["Cost head", "Keywords (first match wins)"],
         )
         st.caption("Transactions are assigned to a cost head when narration contains any of these keywords. **Other** = no keyword match.")
-        st.dataframe(cost_head_map, width="stretch", hide_index=True)
+        st.dataframe(cost_head_map, use_container_width=True, hide_index=True)
         return
 
 

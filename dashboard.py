@@ -481,16 +481,17 @@ def main():
         monthly_ie = monthly_income.merge(monthly_expense, on="month", how="outer").fillna(0)
         if not monthly_ie.empty:
             monthly_ie = monthly_ie.sort_values("month").reset_index(drop=True)
-            monthly_ie["income"] = monthly_ie["income"].astype(float)
-            monthly_ie["expense"] = monthly_ie["expense"].astype(float)
-            monthly_ie_long = monthly_ie.melt(id_vars=["month"], value_vars=["income", "expense"], var_name="Type", value_name="Amount (₹)")
+            monthly_ie["income"] = monthly_ie["income"].apply(lambda x: float(x))
+            monthly_ie["expense"] = monthly_ie["expense"].apply(lambda x: float(x))
+            monthly_ie_long = monthly_ie.melt(id_vars=["month"], value_vars=["income", "expense"], var_name="Type", value_name="amount")
+            monthly_ie_long["amount"] = monthly_ie_long["amount"].apply(lambda x: float(x))
             fig_monthly = px.bar(
                 monthly_ie_long,
                 x="month",
-                y="Amount (₹)",
+                y="amount",
                 color="Type",
                 title="Monthly income vs expense",
-                labels={"month": "Month"},
+                labels={"month": "Month", "amount": "Amount (₹)"},
                 barmode="group",
                 color_discrete_map={"income": "#2ecc71", "expense": "#e74c3c"},
             )
@@ -505,9 +506,13 @@ def main():
         pie_summary = pie_summary[pie_summary > 0]
         if not pie_summary.empty:
             st.subheader("Cost head distribution")
+            df_pie_summary = pie_summary.reset_index()
+            df_pie_summary.columns = ["cost_head", "amount"]
+            df_pie_summary["amount"] = df_pie_summary["amount"].apply(lambda x: float(x))
             fig_pie_summary = px.pie(
-                values=pie_summary.values.astype(float).tolist(),
-                names=pie_summary.index.astype(str).tolist(),
+                df_pie_summary,
+                values="amount",
+                names="cost_head",
                 title="Cost head distribution",
                 color_discrete_sequence=px.colors.qualitative.Set3,
             )
@@ -553,9 +558,13 @@ def main():
         cash_vs_digital = income_df.groupby("income_type")["credit"].sum()
         if not cash_vs_digital.empty:
             st.subheader("Cash vs Digital")
+            df_cash = cash_vs_digital.reset_index()
+            df_cash.columns = ["income_type", "amount"]
+            df_cash["amount"] = df_cash["amount"].apply(lambda x: float(x))
             fig_cash = px.pie(
-                values=cash_vs_digital.values.astype(float).tolist(),
-                names=cash_vs_digital.index.astype(str).tolist(),
+                df_cash,
+                values="amount",
+                names="income_type",
                 title="Cash vs Digital income",
                 color_discrete_sequence=px.colors.qualitative.Set2,
             )
@@ -647,7 +656,7 @@ def main():
                 matches_inc["month"] = pd.to_datetime(matches_inc["date"]).dt.to_period("M").astype(str)
                 monthly_inc = matches_inc.groupby("month")["credit"].sum().reset_index()
                 monthly_inc = monthly_inc.sort_values("month").reset_index(drop=True)
-                monthly_inc["credit"] = monthly_inc["credit"].astype(float)
+                monthly_inc["credit"] = monthly_inc["credit"].apply(lambda x: float(x))
                 fig_inc_kw = px.bar(
                     monthly_inc,
                     x="month",
@@ -726,7 +735,7 @@ def main():
         monthly_by_head = monthly_by_head[monthly_by_head["cost_head"].isin(cost_heads_only)]
         if not monthly_by_head.empty:
             monthly_by_head = monthly_by_head.sort_values("month").reset_index(drop=True)
-            monthly_by_head["debit"] = monthly_by_head["debit"].astype(float)
+            monthly_by_head["debit"] = monthly_by_head["debit"].apply(lambda x: float(x))
             fig_costs = px.bar(
                 monthly_by_head,
                 x="month",
@@ -744,9 +753,13 @@ def main():
         pie_totals = cost_totals[cost_totals.index.isin(cost_heads_only)]
         pie_totals = pie_totals[pie_totals > 0]
         if not pie_totals.empty:
+            df_pie = pie_totals.reset_index()
+            df_pie.columns = ["cost_head", "amount"]
+            df_pie["amount"] = df_pie["amount"].apply(lambda x: float(x))
             fig_pie = px.pie(
-                values=pie_totals.values.astype(float).tolist(),
-                names=pie_totals.index.astype(str).tolist(),
+                df_pie,
+                values="amount",
+                names="cost_head",
                 title="Cost head distribution",
                 color_discrete_sequence=px.colors.qualitative.Set3,
             )
@@ -771,7 +784,7 @@ def main():
                 matches["month"] = pd.to_datetime(matches["date"]).dt.to_period("M").astype(str)
                 monthly_kw = matches.groupby("month")["debit"].sum().reset_index()
                 monthly_kw = monthly_kw.sort_values("month").reset_index(drop=True)
-                monthly_kw["debit"] = monthly_kw["debit"].astype(float)
+                monthly_kw["debit"] = monthly_kw["debit"].apply(lambda x: float(x))
                 fig_kw = px.bar(
                     monthly_kw,
                     x="month",

@@ -1,0 +1,13 @@
+pypdf2
+pycryptodome
+pdfplumber
+pandas
+openpyxl
+matplotlib
+seaborn
+plotly
+numpy
+python-dateutil
+tabulate
+streamlit
+

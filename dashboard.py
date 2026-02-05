@@ -381,6 +381,15 @@ def format_currency(amount: float) -> str:
     return f"₹{amount:,.2f}"
 
 
+def _dataframe_for_display(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert to dtypes safe for Streamlit (avoids Arrow LargeUtf8 serialization error)."""
+    df = df.copy()
+    for col in df.columns:
+        if not pd.api.types.is_numeric_dtype(df[col]) and not pd.api.types.is_datetime64_any_dtype(df[col]):
+            df[col] = df[col].astype(object)
+    return df
+
+
 def main():
     st.set_page_config(
         page_title="Financial Dashboard",
@@ -612,7 +621,7 @@ def main():
             customer_display = customer_display.rename(
                 columns={"customer_id": "Customer ID", "type": "Type", "transactions": "Transactions", "total_amount": "Total amount"}
             )
-            st.dataframe(customer_display, use_container_width=True)
+            st.dataframe(_dataframe_for_display(customer_display), use_container_width=True)
 
         # Search by keyword (income)
         st.subheader("Search by keyword")
@@ -646,7 +655,7 @@ def main():
                 matches_inc_display["Amount"] = matches_inc_display["Amount"].apply(format_currency)
                 matches_inc_display = matches_inc_display.rename(columns={"date": "Date"})
                 st.caption(f"**{len(matches_inc)}** transaction(s) matching **{income_keyword.strip()}**.")
-                st.dataframe(matches_inc_display[["Date", "Narration", "Amount"]], use_container_width=True)
+                st.dataframe(_dataframe_for_display(matches_inc_display[["Date", "Narration", "Amount"]]), use_container_width=True)
         st.markdown("---")
 
         income = income_df[["date", "narration", "credit"]].copy()
@@ -671,7 +680,7 @@ def main():
         income_display["Amount"] = income_display["Amount"].apply(format_currency)
         income_display = income_display.rename(columns={"date": "Date"})
         st.caption(f"Showing all **{len(income_display)}** deposit transactions.")
-        st.dataframe(income_display, use_container_width=True)
+        st.dataframe(_dataframe_for_display(income_display), use_container_width=True)
         return
 
     # ---- Page: Expense ----
@@ -766,7 +775,7 @@ def main():
                 matches_display["Amount"] = matches_display["Amount"].apply(format_currency)
                 matches_display = matches_display.rename(columns={"date": "Date"})
                 st.caption(f"**{len(matches)}** transaction(s) matching **{cost_keyword.strip()}**.")
-                st.dataframe(matches_display[["Date", "Narration", "Amount"]], use_container_width=True)
+                st.dataframe(_dataframe_for_display(matches_display[["Date", "Narration", "Amount"]]), use_container_width=True)
         st.markdown("---")
 
         expense_sort = st.radio(
@@ -788,7 +797,7 @@ def main():
         expense_display["Amount"] = expense_display["Amount"].apply(format_currency)
         expense_display = expense_display.rename(columns={"date": "Date"})
         st.caption(f"Showing all **{len(expense_display)}** withdrawal transactions.")
-        st.dataframe(expense_display, use_container_width=True)
+        st.dataframe(_dataframe_for_display(expense_display), use_container_width=True)
 
         # Cost heads vs keywords reference
         st.markdown("---")
@@ -798,7 +807,7 @@ def main():
             columns=["Cost head", "Keywords (first match wins)"],
         )
         st.caption("Transactions are assigned to a cost head when narration contains any of these keywords. **Other** = no keyword match.")
-        st.dataframe(cost_head_map, use_container_width=True)
+        st.dataframe(_dataframe_for_display(cost_head_map), use_container_width=True)
         return
 
 

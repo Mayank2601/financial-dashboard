@@ -480,12 +480,17 @@ def main():
         monthly_expense = monthly_expense.rename(columns={"debit": "expense"})
         monthly_ie = monthly_income.merge(monthly_expense, on="month", how="outer").fillna(0)
         if not monthly_ie.empty:
+            monthly_ie = monthly_ie.sort_values("month").reset_index(drop=True)
+            monthly_ie["income"] = monthly_ie["income"].astype(float)
+            monthly_ie["expense"] = monthly_ie["expense"].astype(float)
+            monthly_ie_long = monthly_ie.melt(id_vars=["month"], value_vars=["income", "expense"], var_name="Type", value_name="Amount (₹)")
             fig_monthly = px.bar(
-                monthly_ie,
+                monthly_ie_long,
                 x="month",
-                y=["income", "expense"],
+                y="Amount (₹)",
+                color="Type",
                 title="Monthly income vs expense",
-                labels={"value": "Amount (₹)", "month": "Month", "variable": "Type"},
+                labels={"month": "Month"},
                 barmode="group",
                 color_discrete_map={"income": "#2ecc71", "expense": "#e74c3c"},
             )
@@ -501,8 +506,8 @@ def main():
         if not pie_summary.empty:
             st.subheader("Cost head distribution")
             fig_pie_summary = px.pie(
-                values=pie_summary.values,
-                names=pie_summary.index,
+                values=pie_summary.values.astype(float).tolist(),
+                names=pie_summary.index.astype(str).tolist(),
                 title="Cost head distribution",
                 color_discrete_sequence=px.colors.qualitative.Set3,
             )
@@ -549,8 +554,8 @@ def main():
         if not cash_vs_digital.empty:
             st.subheader("Cash vs Digital")
             fig_cash = px.pie(
-                values=cash_vs_digital.values,
-                names=cash_vs_digital.index,
+                values=cash_vs_digital.values.astype(float).tolist(),
+                names=cash_vs_digital.index.astype(str).tolist(),
                 title="Cash vs Digital income",
                 color_discrete_sequence=px.colors.qualitative.Set2,
             )
@@ -641,6 +646,8 @@ def main():
                 st.metric("Total income (matching keyword)", format_currency(matches_inc["credit"].sum()))
                 matches_inc["month"] = pd.to_datetime(matches_inc["date"]).dt.to_period("M").astype(str)
                 monthly_inc = matches_inc.groupby("month")["credit"].sum().reset_index()
+                monthly_inc = monthly_inc.sort_values("month").reset_index(drop=True)
+                monthly_inc["credit"] = monthly_inc["credit"].astype(float)
                 fig_inc_kw = px.bar(
                     monthly_inc,
                     x="month",
@@ -718,6 +725,8 @@ def main():
         cost_heads_only = [name for name, _ in COST_HEADS]
         monthly_by_head = monthly_by_head[monthly_by_head["cost_head"].isin(cost_heads_only)]
         if not monthly_by_head.empty:
+            monthly_by_head = monthly_by_head.sort_values("month").reset_index(drop=True)
+            monthly_by_head["debit"] = monthly_by_head["debit"].astype(float)
             fig_costs = px.bar(
                 monthly_by_head,
                 x="month",
@@ -736,8 +745,8 @@ def main():
         pie_totals = pie_totals[pie_totals > 0]
         if not pie_totals.empty:
             fig_pie = px.pie(
-                values=pie_totals.values,
-                names=pie_totals.index,
+                values=pie_totals.values.astype(float).tolist(),
+                names=pie_totals.index.astype(str).tolist(),
                 title="Cost head distribution",
                 color_discrete_sequence=px.colors.qualitative.Set3,
             )
@@ -761,6 +770,8 @@ def main():
                 st.metric("Total withdrawn (matching keyword)", format_currency(total_withdrawn))
                 matches["month"] = pd.to_datetime(matches["date"]).dt.to_period("M").astype(str)
                 monthly_kw = matches.groupby("month")["debit"].sum().reset_index()
+                monthly_kw = monthly_kw.sort_values("month").reset_index(drop=True)
+                monthly_kw["debit"] = monthly_kw["debit"].astype(float)
                 fig_kw = px.bar(
                     monthly_kw,
                     x="month",

@@ -10,4 +10,5 @@ numpy
 python-dateutil
 tabulate
 streamlit
+altair>=4.0.0,<6.0.0
 

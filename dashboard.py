@@ -39,12 +39,13 @@ COST_HEADS = [
     ("Expansion (cow, fridge)", ["cow", "refrig", "crockery"]),
     ("Marketing", ["print", "adver"]),
     ("Loan, CC", ["loan", "credit"]),
+    ("Milk Procurement", ["davinder", "puneet"]),
     ("Miscellaneous", ["ration", "fee", "medical", "ghee", "fees", "netflix", "amazon", "blinkit", "swiggy", "airtel", "jio", "vikram", "ROOPBASANT"]),
 ]
 
 # Same colors for cost heads across all bar and pie charts (order matches COST_HEADS)
 COST_HEAD_COLORS = [
-    "#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5",
+    "#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#bc80bd",
 ]
 COST_HEAD_COLOR_MAP = {name: COST_HEAD_COLORS[i] for i, (name, _) in enumerate(COST_HEADS)}
 

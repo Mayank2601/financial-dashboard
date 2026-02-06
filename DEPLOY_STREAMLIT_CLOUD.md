@@ -59,7 +59,8 @@ GitHub → Settings → Developer settings → Personal access tokens → Genera
 5. **Branch:** `main`.
 6. **Main file path:** `dashboard.py`.
 7. **App URL:** optional subdomain (e.g. `financial-dashboard`).
-8. Click **Deploy**.
+8. **Important:** Click **Advanced settings** and set **Python version** to **3.12** (not 3.13). Python 3.13 removes the `imghdr` module that Streamlit needs.
+9. Click **Deploy**.
 
 Wait a few minutes. When it’s ready, you’ll get a link like:
 
@@ -80,3 +81,19 @@ git push
 ```
 
 Streamlit Cloud will redeploy automatically, or you can trigger **Reboot app** from the app’s dashboard on share.streamlit.io.
+
+---
+
+## Troubleshooting
+
+### `ModuleNotFoundError: No module named 'imghdr'`
+
+Python 3.13 removed the `imghdr` standard library module; Streamlit still uses it. **Fix:** use Python 3.12 on Streamlit Cloud.
+
+1. On [share.streamlit.io](https://share.streamlit.io), open your app.
+2. Click the **⋮** (three dots) → **Delete app** (or **Settings** if you can change Python there).
+3. Deploy again: **New app** → same repo/branch/main file.
+4. Before deploying, open **Advanced settings** and set **Python version** to **3.12**.
+5. Click **Deploy**.
+
+You cannot change Python version on an existing app; you must delete and redeploy with 3.12 selected.

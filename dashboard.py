@@ -113,19 +113,6 @@ def _imps_customer_id(narration: str) -> Optional[str]:
     return n[second + 1 : third]
 
 
-def _excluded_from_expense(narration: str) -> bool:
-    """True if this withdrawal should not count as expense (e.g. NEFT DR-CNRB0002374 transfers)."""
-    n = (str(narration) if pd.notna(narration) else "").strip().upper()
-    return n.startswith("NEFT DR-CNRB0002374")
-
-
-def _expense_mask(df: pd.DataFrame) -> pd.Series:
-    """Boolean mask: debit > 0 and not excluded from expense (e.g. NEFT DR-CNRB0002374)."""
-    is_debit = df["debit"] > 0
-    excluded = df["narration"].fillna("").apply(_excluded_from_expense)
-    return is_debit & ~excluded
-
-
 def _assign_cost_head(narration: str) -> str:
     """Assign exactly one cost head per transaction (counted once).
     First cost head with any matching keyword wins; multiple keyword hits within
@@ -469,9 +456,8 @@ def main():
     if page == "Summary":
         st.header("Summary")
         total_income = df["credit"].sum()
-        expense_mask = _expense_mask(df)
-        total_expense = df.loc[expense_mask, "debit"].sum()
-        expense_count = expense_mask.sum()
+        total_expense = df[df["debit"] > 0]["debit"].sum()
+        expense_count = (df["debit"] > 0).sum()
         total_profit = total_income - total_expense
         margin_pct = (total_profit / total_income * 100) if total_income > 0 else 0.0
         c1, c2, c3, c4 = st.columns(4)
@@ -483,13 +469,13 @@ def main():
             st.metric("Total Profit", format_currency(total_profit))
         with c4:
             st.metric("Margin %", f"{margin_pct:.1f}%")
-        st.caption(f"Total transactions: **{len(df)}** (Income: {(df['credit'] > 0).sum()}, Expense: **{expense_count}** — excludes NEFT DR-CNRB0002374 from expense). Profit = Income − Expense; Margin % = Profit / Income.")
+        st.caption(f"Total transactions: **{len(df)}** (Income: {(df['credit'] > 0).sum()}, Expense: **{expense_count}**). Profit = Income − Expense; Margin % = Profit / Income.")
         # Monthly income vs expense bar chart
         df_summary = df.copy()
         df_summary["month"] = pd.to_datetime(df_summary["date"]).dt.to_period("M").astype(str)
         monthly_income = df_summary.groupby("month")["credit"].sum().reset_index()
         monthly_income = monthly_income.rename(columns={"credit": "income"})
-        expense_df_summary = df_summary[expense_mask].copy()
+        expense_df_summary = df_summary[df_summary["debit"] > 0].copy()
         monthly_expense = expense_df_summary.groupby("month")["debit"].sum().reset_index()
         monthly_expense = monthly_expense.rename(columns={"debit": "expense"})
         monthly_ie = monthly_income.merge(monthly_expense, on="month", how="outer").fillna(0)
@@ -503,8 +489,8 @@ def main():
             fig_monthly.add_trace(go.Bar(x=months_list, y=expense_list, name="expense", marker_color="#e74c3c"))
             fig_monthly.update_layout(barmode="group", title="Monthly income vs expense", xaxis_tickangle=-45, yaxis_title="Amount (₹)", xaxis_title="Month")
             st.plotly_chart(fig_monthly, use_container_width=True)
-        # Cost head pie chart (exclude Other; expense excludes NEFT DR-CNRB0002374)
-        expense_summary = df[expense_mask].copy()
+        # Cost head pie chart (exclude Other)
+        expense_summary = df[df["debit"] > 0].copy()
         expense_summary["cost_head"] = expense_summary["narration"].apply(_assign_cost_head)
         cost_totals_summary = expense_summary.groupby("cost_head", sort=False)["debit"].sum()
         cost_heads_only = [name for name, _ in COST_HEADS]
@@ -693,15 +679,13 @@ def main():
     # ---- Page: Expense ----
     if page == "Expense":
         st.header("Expense – all withdrawal transactions")
-        expense_mask_exp = _expense_mask(df)
-        expense = df[expense_mask_exp][["date", "narration", "debit"]].copy()
+        expense = df[df["debit"] > 0][["date", "narration", "debit"]].copy()
         expense = expense.rename(columns={"narration": "Narration", "debit": "Amount"})
         expense["date"] = pd.to_datetime(expense["date"]).dt.strftime("%Y-%m-%d")
-        st.caption("Excludes withdrawals with narration starting with **NEFT DR-CNRB0002374** (not counted as expense).")
 
         # Cost heads (grouped keywords; each transaction counted once – first match wins)
         st.subheader("Costs")
-        expense_for_costs = df[expense_mask_exp].copy()
+        expense_for_costs = df[df["debit"] > 0].copy()
         expense_for_costs["cost_head"] = expense_for_costs["narration"].apply(_assign_cost_head)
         cost_totals = expense_for_costs.groupby("cost_head", sort=False)["debit"].sum()
         cost_order = [name for name, _ in COST_HEADS] + ["Other"]
@@ -757,7 +741,7 @@ def main():
             placeholder="Type a word and press Enter",
         )
         if cost_keyword and cost_keyword.strip():
-            expense_all = df[expense_mask_exp][["date", "narration", "debit"]].copy()
+            expense_all = df[df["debit"] > 0][["date", "narration", "debit"]].copy()
             nar = expense_all["narration"].fillna("").astype(str).str.lower()
             mask = nar.str.contains(cost_keyword.strip().lower(), na=False)
             matches = expense_all.loc[mask].copy()

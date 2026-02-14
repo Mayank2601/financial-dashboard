@@ -10,8 +10,11 @@ from datetime import datetime
 
 import dairy_db as db
 
-# Initialize database
-db.init_db()
+
+@st.cache_data(ttl=60)
+def _cached_customer_names():
+    """Cache customer list to avoid DB query on every input change in Add Order/Income."""
+    return db.get_all_customer_names()
 
 
 @st.cache_data(ttl=5)
@@ -50,7 +53,7 @@ DEFAULT_PRICES = {"Milk": 120.0, "Ghee": 0.0, "Curd": 0.0, "Paneer": 0.0}
 def _render_customer_selector(key_prefix: str) -> str:
     """Render customer dropdown with '+ Add new' option. Returns selected/entered customer name.
     Shows 'Enter new customer' text input only when '+ Add new customer' is selected."""
-    customers = db.get_all_customer_names()
+    customers = _cached_customer_names()
     options = ["+ Add new customer"] + sorted(customers) if customers else ["+ Add new customer"]
     selected = st.selectbox("Customer", options, key=f"{key_prefix}_cust_select")
     if selected == "+ Add new customer":
@@ -96,6 +99,7 @@ def render_add_order():
                     notes=notes,
                 )
                 _cached_orders_df.clear()
+                _cached_customer_names.clear()
                 st.success(f"Order saved! (ID: {row_id})")
 
 
@@ -125,6 +129,7 @@ def render_add_income():
                     notes=notes,
                 )
                 _cached_income_df.clear()
+                _cached_customer_names.clear()
                 st.success(f"Income saved! (ID: {row_id})")
 
 
@@ -515,6 +520,11 @@ def main():
         layout="wide",
         initial_sidebar_state="expanded",
     )
+
+    # Initialize DB once per session (avoids repeated connection on every rerun)
+    if "db_inited" not in st.session_state:
+        db.init_db()
+        st.session_state.db_inited = True
 
     st.title("🥛 Dairy Business Logging")
     st.caption("Track orders, income, and expenses. Analyze performance.")

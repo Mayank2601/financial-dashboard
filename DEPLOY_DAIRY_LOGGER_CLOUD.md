@@ -35,12 +35,14 @@ This guide walks you through deploying the Dairy Business Logger app so 3–4 us
 
 ## Step 2: Get the database connection string
 
+**Critical:** Use the **Connection Pooler** (port 6543), **not** the direct connection (`db.xxx.supabase.co:5432`). The direct connection uses IPv6, which Streamlit Cloud cannot reach. You will get "Cannot assign requested address" if you use it.
+
 1. In your Supabase project, go to **Project Settings** (gear icon) → **Database**.
-2. Find **Connection string** and select **URI**.
-3. Copy the connection string. It looks like:
-   ```
-   postgresql://postgres.[project-ref]:[YOUR-PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres
-   ```
+2. Scroll to **Connection string**. Select the **"Connection pooling"** or **Transaction** tab (not the direct/URI tab that shows `db.xxx.supabase.co`).
+3. Copy the pooler connection string. It should use:
+   `aws-0-[region].pooler.supabase.com:6543` (e.g. `aws-0-ap-south-1.pooler.supabase.com:6543`).
+   Full format: `postgresql://postgres.[project-ref]:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres`
+   Replace `[region]` with your actual region (e.g. `ap-south-1`, `ap-southeast-1`, `us-east-1`). Do not use `xx`.
 4. Replace `[YOUR-PASSWORD]` with the database password you set in Step 1.
 5. **If your password contains `@`** (e.g. `myemail@2026`): encode it as `%40` → `myemail%402026`. Otherwise the connection will fail with "could not translate host name".
 6. If the string starts with `postgres://`, change it to `postgresql://`.
@@ -144,7 +146,9 @@ Streamlit Cloud will redeploy automatically. You can also click **Reboot app** i
 
 4. **Region:** If it still fails, try a different Supabase region (e.g. Southeast Asia or US East).
 
-5. **After changing Secrets:** Click **Reboot app** in Streamlit Cloud.
+5. **"Cannot assign requested address" or IPv6 error:** You are using the **direct** connection (`db.xxx.supabase.co:5432`). Streamlit Cloud cannot connect to Supabase's direct host. Switch to the **Connection Pooler** (Transaction mode): Supabase → Project Settings → Database → Connection string → **Connection pooling** tab → copy the URI with `aws-0-[region].pooler.supabase.com:6543` and use that as `DATABASE_URL` instead.
+
+6. **After changing Secrets:** Click **Reboot app** in Streamlit Cloud.
 
 ### App fails to start or “Database error”
 

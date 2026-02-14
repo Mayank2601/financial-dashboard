@@ -40,7 +40,12 @@ def _get_engine():
     """Return SQLAlchemy engine for current database mode."""
     import sqlalchemy as sa
     if DATABASE_URL:
-        return sa.create_engine(DATABASE_URL, pool_pre_ping=True)
+        # Use NullPool for serverless (Streamlit Cloud) - avoids connection pooling issues with Supabase
+        return sa.create_engine(
+            DATABASE_URL,
+            poolclass=sa.pool.NullPool,
+            pool_pre_ping=True,
+        )
     return sa.create_engine(f"sqlite:///{_DB_PATH}")
 
 

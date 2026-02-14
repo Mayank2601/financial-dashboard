@@ -47,48 +47,24 @@ This guide walks you through deploying the Dairy Business Logger app so 3–4 us
 
 ---
 
-## Step 3: Push the project to GitHub
+## Step 3: Code on GitHub
 
-### 3a. Create a new repository
+The Dairy Logger code has been pushed to your existing repo:  
+**https://github.com/Mayank2601/financial-dashboard**
 
-1. Go to [github.com](https://github.com) → **+** → **New repository**.
-2. **Repository name:** e.g. `dairy-logger`
-3. **Visibility:** Public
-4. Do **not** initialize with README / .gitignore / license.
-5. Click **Create repository**.
+You can deploy from this repo. When creating the Streamlit app, set **Main file path** to `dairy_logger.py` (not `dashboard.py`).
 
-### 3b. Push the code
+### If you prefer a separate repository
 
-Open a terminal in the project folder (`Account_statement analyzer`) and run:
+1. Create a new repo at [github.com](https://github.com) (e.g. `dairy-logger`).
+2. Push the dairy files:
 
 ```bash
-# Initialize git (if not already)
-git init
-
-# Add files
-git add .
-
-# Commit
-git commit -m "Dairy Business Logger - deploy to Streamlit Cloud"
-
-# Rename branch to main
-git branch -M main
-
-# Add your GitHub repo (replace YOUR_USERNAME and REPO_NAME with yours)
-git remote add origin https://github.com/YOUR_USERNAME/REPO_NAME.git
-
-# Push
-git push -u origin main
+git remote add dairy https://github.com/YOUR_USERNAME/dairy-logger.git
+git push dairy main
 ```
 
-**Example:** For `https://github.com/mayankkaura/dairy-logger`:
-
-```bash
-git remote add origin https://github.com/mayankkaura/dairy-logger.git
-git push -u origin main
-```
-
-If Git asks for credentials, use a [Personal Access Token](https://github.com/settings/tokens) instead of a password (Settings → Developer settings → Personal access tokens → Generate).
+Then use that repo when deploying on Streamlit Cloud.
 
 ---
 
@@ -97,9 +73,9 @@ If Git asks for credentials, use a [Personal Access Token](https://github.com/se
 1. Go to **[share.streamlit.io](https://share.streamlit.io)**.
 2. Sign in with GitHub and allow access.
 3. Click **New app**.
-4. **Repository:** Choose `YOUR_USERNAME/dairy-logger`
+4. **Repository:** Choose `Mayank2601/financial-dashboard` (or your dairy-logger repo if you made one).
 5. **Branch:** `main`
-6. **Main file path:** `dairy_logger.py`
+6. **Main file path:** `dairy_logger.py` (important: not `dashboard.py`)
 7. **App URL:** Choose a subdomain (e.g. `dairy-logger`).
 8. Open **Advanced settings**:
    - **Python version:** 3.11 or 3.12

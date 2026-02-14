@@ -42,8 +42,9 @@ This guide walks you through deploying the Dairy Business Logger app so 3–4 us
    postgresql://postgres.[project-ref]:[YOUR-PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres
    ```
 4. Replace `[YOUR-PASSWORD]` with the database password you set in Step 1.
-5. If the string starts with `postgres://`, change it to `postgresql://`.
-6. Save this string somewhere safe. You’ll add it as a secret in Streamlit.
+5. **If your password contains `@`** (e.g. `myemail@2026`): encode it as `%40` → `myemail%402026`. Otherwise the connection will fail with "could not translate host name".
+6. If the string starts with `postgres://`, change it to `postgresql://`.
+7. Save this string somewhere safe. You’ll add it as a secret in Streamlit.
 
 ---
 
@@ -134,7 +135,10 @@ Streamlit Cloud will redeploy automatically. You can also click **Reboot app** i
    `DATABASE_URL = "postgresql://postgres.[ref]:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres"`
    Replace `[PASSWORD]` with your real password (no brackets).
 
-2. **Password with special characters** (`@`, `#`, `%`, `&`): must be URL-encoded (e.g. `@` → `%40`), or use letters and numbers only.
+2. **Password with special characters** (`@`, `#`, `%`, `&`, etc.):
+   - Must be URL-encoded in the connection string (e.g. `@` → `%40`, `#` → `%23`, `%` → `%25`).
+   - If you see host name like `"2026@db.xxx.supabase.co"`, your password contains `@` — encode it as `%40` (e.g. `user@2026` → `user%402026`).
+   - **Alternative:** Change your Supabase password to one with only letters and numbers: Supabase → Project Settings → Database → scroll to "Database password" → "Reset database password". Then use the new password (no encoding needed).
 
 3. **Use Transaction pooler (port 6543):** Supabase → Project Settings → Database → Connection string → URI → use Transaction pooler (port 6543).
 

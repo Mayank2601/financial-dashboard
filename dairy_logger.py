@@ -293,7 +293,7 @@ def render_dashboard():
         st.metric("Margin %", f"{margin_pct:.1f}%")
     st.caption("Margin % = (Income − Expense) / Income")
 
-    st.divider()
+    st.markdown("---")
 
     # --- Cost head pie chart ---
     st.subheader("Cost Head Distribution")
@@ -311,7 +311,7 @@ def render_dashboard():
     else:
         st.caption("No expenses recorded yet.")
 
-    st.divider()
+    st.markdown("---")
 
     # --- Recurring vs total customers ---
     st.subheader("Customer Metrics")
@@ -330,7 +330,7 @@ def render_dashboard():
     else:
         st.caption("No orders yet.")
 
-    st.divider()
+    st.markdown("---")
 
     # --- Weekly / Monthly: Orders, Income, Expenses (3 bars per timeframe) ---
     st.subheader("Orders vs Income vs Expenses Over Time")
@@ -377,7 +377,7 @@ def render_dashboard():
     else:
         st.caption("No data recorded yet.")
 
-    st.divider()
+    st.markdown("---")
 
     # --- Orders vs income (pending) ---
     st.subheader("Orders vs Income (Pending)")
@@ -419,7 +419,7 @@ def render_dashboard():
     else:
         st.caption("Add orders and income to see pending analysis.")
 
-    st.divider()
+    st.markdown("---")
 
     # --- Customer analysis ---
     st.subheader("Customer Analysis")

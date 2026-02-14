@@ -34,6 +34,15 @@ def format_currency(amount: float) -> str:
     return f"₹{amount:,.2f}"
 
 
+def _safe_dataframe_for_display(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert dtypes to avoid Arrow LargeUtf8 serialization error in Streamlit."""
+    df = df.copy()
+    for col in df.columns:
+        if not pd.api.types.is_numeric_dtype(df[col]) and not pd.api.types.is_datetime64_any_dtype(df[col]):
+            df[col] = df[col].astype(object)
+    return df
+
+
 # Default unit prices per product
 DEFAULT_PRICES = {"Milk": 120.0, "Ghee": 0.0, "Curd": 0.0, "Paneer": 0.0}
 
@@ -132,7 +141,7 @@ def render_view_edit_logs():
         display_df = orders_df[["id", "date", "customer_name", "product", "quantity", "unit_price", "amount"]].copy()
         display_df = display_df.rename(columns={"id": "ID", "date": "Date", "customer_name": "Customer", "product": "Product", "quantity": "Qty", "unit_price": "Unit price", "amount": "Amount"})
         display_df["Amount"] = display_df["Amount"].apply(format_currency)
-        st.dataframe(display_df, use_container_width=True)
+        st.dataframe(_safe_dataframe_for_display(display_df), use_container_width=True)
         edit_options = [f"#{o['id']} | {o['date']} | {o['customer_name']} | {o['product']} | ₹{o['amount']}" for o in orders]
         selected = st.selectbox("Select entry to edit or delete", edit_options, key="edit_order_select")
         if selected:
@@ -171,7 +180,7 @@ def render_view_edit_logs():
         display_df = income_df[["id", "date", "amount", "customer_name", "payment_method"]].copy()
         display_df = display_df.rename(columns={"id": "ID", "date": "Date", "amount": "Amount", "customer_name": "Customer", "payment_method": "Method"})
         display_df["Amount"] = display_df["Amount"].apply(lambda x: format_currency(float(x)))
-        st.dataframe(display_df, use_container_width=True)
+        st.dataframe(_safe_dataframe_for_display(display_df), use_container_width=True)
         edit_options = [f"#{i['id']} | {i['date']} | ₹{i['amount']} | {(i.get('customer_name') or '-')}" for i in income_list]
         selected = st.selectbox("Select entry to edit or delete", edit_options, key="edit_income_select")
         if selected:
@@ -211,7 +220,7 @@ def render_view_edit_logs():
         display_df = expenses_df[["id", "date", "amount", "cost_head", "description"]].copy()
         display_df = display_df.rename(columns={"id": "ID", "date": "Date", "amount": "Amount", "cost_head": "Cost head", "description": "Description"})
         display_df["Amount"] = display_df["Amount"].apply(lambda x: format_currency(float(x)))
-        st.dataframe(display_df, use_container_width=True)
+        st.dataframe(_safe_dataframe_for_display(display_df), use_container_width=True)
         edit_options = [f"#{e['id']} | {e['date']} | ₹{e['amount']} | {e['cost_head']}" for e in expenses]
         selected = st.selectbox("Select entry to edit or delete", edit_options, key="edit_expense_select")
         if selected:
@@ -459,7 +468,7 @@ def render_dashboard():
                         }
                     )
                     display_orders["Amount"] = display_orders["Amount"].apply(format_currency)
-                    st.dataframe(display_orders, use_container_width=True)
+                    st.dataframe(_safe_dataframe_for_display(display_orders), use_container_width=True)
 
             with col2:
                 st.markdown("**Payment history**")
@@ -471,7 +480,7 @@ def render_dashboard():
                         columns={"date": "Date", "amount": "Amount", "payment_method": "Method"}
                     )
                     display_income["Amount"] = display_income["Amount"].apply(format_currency)
-                    st.dataframe(display_income, use_container_width=True)
+                    st.dataframe(_safe_dataframe_for_display(display_income), use_container_width=True)
 
 
 def main():

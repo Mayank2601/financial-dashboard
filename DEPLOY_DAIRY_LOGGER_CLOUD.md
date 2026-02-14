@@ -128,6 +128,20 @@ Streamlit Cloud will redeploy automatically. You can also click **Reboot app** i
 
 ## Troubleshooting
 
+### sqlalchemy.exc.OperationalError (connection failure)
+
+1. **Verify DATABASE_URL in Secrets:** Manage app → Settings → Secrets. Format:
+   `DATABASE_URL = "postgresql://postgres.[ref]:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres"`
+   Replace `[PASSWORD]` with your real password (no brackets).
+
+2. **Password with special characters** (`@`, `#`, `%`, `&`): must be URL-encoded (e.g. `@` → `%40`), or use letters and numbers only.
+
+3. **Use Transaction pooler (port 6543):** Supabase → Project Settings → Database → Connection string → URI → use Transaction pooler (port 6543).
+
+4. **Region:** If it still fails, try a different Supabase region (e.g. Southeast Asia or US East).
+
+5. **After changing Secrets:** Click **Reboot app** in Streamlit Cloud.
+
 ### App fails to start or “Database error”
 
 - Check that `DATABASE_URL` in Streamlit Secrets matches your Supabase connection string.

@@ -27,6 +27,10 @@ if DATABASE_URL:
     # Supabase may provide postgres:// - SQLAlchemy needs postgresql://
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    # Supabase/cloud PostgreSQL requires SSL; add sslmode=require
+    if "postgresql" in DATABASE_URL and "sslmode=" not in DATABASE_URL.lower():
+        sep = "&" if "?" in DATABASE_URL else "?"
+        DATABASE_URL = f"{DATABASE_URL}{sep}sslmode=require"
     _DB_PATH = None
 else:
     _DB_PATH = Path(__file__).resolve().parent / "dairy_data.db"

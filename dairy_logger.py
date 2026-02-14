@@ -14,6 +14,22 @@ import dairy_db as db
 db.init_db()
 
 
+@st.cache_data(ttl=5)
+def _cached_orders_df():
+    """Cache orders for 5s to reduce DB load on Dashboard and View Logs."""
+    return db.get_orders_df()
+
+
+@st.cache_data(ttl=5)
+def _cached_income_df():
+    return db.get_income_df()
+
+
+@st.cache_data(ttl=5)
+def _cached_expenses_df():
+    return db.get_expenses_df()
+
+
 def format_currency(amount: float) -> str:
     return f"₹{amount:,.2f}"
 
@@ -70,6 +86,7 @@ def render_add_order():
                     unit_price=unit_price,
                     notes=notes,
                 )
+                _cached_orders_df.clear()
                 st.success(f"Order saved! (ID: {row_id})")
 
 
@@ -98,6 +115,7 @@ def render_add_income():
                     payment_method=payment_method,
                     notes=notes,
                 )
+                _cached_income_df.clear()
                 st.success(f"Income saved! (ID: {row_id})")
 
 
@@ -106,15 +124,15 @@ def render_view_edit_logs():
     log_tab = st.radio("Log type", ["Orders", "Income", "Expenses"], key="log_tab", horizontal=True)
 
     if log_tab == "Orders":
-        orders = db.get_orders()
-        if not orders:
+        orders_df = _cached_orders_df()
+        if orders_df.empty:
             st.info("No orders yet.")
             return
-        df = pd.DataFrame(orders)
-        display_df = df[["id", "date", "customer_name", "product", "quantity", "unit_price", "amount"]].copy()
+        orders = orders_df.to_dict("records")
+        display_df = orders_df[["id", "date", "customer_name", "product", "quantity", "unit_price", "amount"]].copy()
         display_df = display_df.rename(columns={"id": "ID", "date": "Date", "customer_name": "Customer", "product": "Product", "quantity": "Qty", "unit_price": "Unit price", "amount": "Amount"})
         display_df["Amount"] = display_df["Amount"].apply(format_currency)
-        st.dataframe(display_df, width="stretch", hide_index=True)
+        st.dataframe(display_df, use_container_width=True)
         edit_options = [f"#{o['id']} | {o['date']} | {o['customer_name']} | {o['product']} | ₹{o['amount']}" for o in orders]
         selected = st.selectbox("Select entry to edit or delete", edit_options, key="edit_order_select")
         if selected:
@@ -122,6 +140,7 @@ def render_view_edit_logs():
             with st.expander("Edit or delete", expanded=True):
                 if st.button("Delete this order", type="secondary", key=f"del_order_btn_{order_id}"):
                     if db.delete_order(order_id):
+                        _cached_orders_df.clear()
                         st.success("Deleted.")
                         st.rerun()
                     else:
@@ -139,26 +158,28 @@ def render_view_edit_logs():
                         if st.form_submit_button("Save changes"):
                             if ecust.strip() and eprice > 0 and eqty > 0:
                                 if db.update_order(order_id, str(edate), ecust.strip(), eproduct, eqty, eprice, enotes):
+                                    _cached_orders_df.clear()
                                     st.success("Updated.")
                                     st.rerun()
 
     elif log_tab == "Income":
-        income_list = db.get_income()
-        if not income_list:
+        income_df = _cached_income_df()
+        if income_df.empty:
             st.info("No income entries yet.")
             return
-        df = pd.DataFrame(income_list)
-        display_df = df[["id", "date", "amount", "customer_name", "payment_method"]].copy()
+        income_list = income_df.to_dict("records")
+        display_df = income_df[["id", "date", "amount", "customer_name", "payment_method"]].copy()
         display_df = display_df.rename(columns={"id": "ID", "date": "Date", "amount": "Amount", "customer_name": "Customer", "payment_method": "Method"})
         display_df["Amount"] = display_df["Amount"].apply(lambda x: format_currency(float(x)))
-        st.dataframe(display_df, width="stretch", hide_index=True)
-        edit_options = [f"#{i['id']} | {i['date']} | ₹{i['amount']} | {(i['customer_name'] or '-')}" for i in income_list]
+        st.dataframe(display_df, use_container_width=True)
+        edit_options = [f"#{i['id']} | {i['date']} | ₹{i['amount']} | {(i.get('customer_name') or '-')}" for i in income_list]
         selected = st.selectbox("Select entry to edit or delete", edit_options, key="edit_income_select")
         if selected:
             income_id = int(selected.split("|")[0].replace("#", "").strip())
             with st.expander("Edit or delete", expanded=True):
                 if st.button("Delete this entry", type="secondary", key=f"del_income_btn_{income_id}"):
                     if db.delete_income(income_id):
+                        _cached_income_df.clear()
                         st.success("Deleted.")
                         st.rerun()
                     else:
@@ -177,19 +198,20 @@ def render_view_edit_logs():
                         if st.form_submit_button("Save changes"):
                             if eamt > 0:
                                 if db.update_income(income_id, str(edate), eamt, ecust.strip(), emethod, enotes):
+                                    _cached_income_df.clear()
                                     st.success("Updated.")
                                     st.rerun()
 
     else:  # Expenses
-        expenses = db.get_expenses()
-        if not expenses:
+        expenses_df = _cached_expenses_df()
+        if expenses_df.empty:
             st.info("No expenses yet.")
             return
-        df = pd.DataFrame(expenses)
-        display_df = df[["id", "date", "amount", "cost_head", "description"]].copy()
+        expenses = expenses_df.to_dict("records")
+        display_df = expenses_df[["id", "date", "amount", "cost_head", "description"]].copy()
         display_df = display_df.rename(columns={"id": "ID", "date": "Date", "amount": "Amount", "cost_head": "Cost head", "description": "Description"})
         display_df["Amount"] = display_df["Amount"].apply(lambda x: format_currency(float(x)))
-        st.dataframe(display_df, width="stretch", hide_index=True)
+        st.dataframe(display_df, use_container_width=True)
         edit_options = [f"#{e['id']} | {e['date']} | ₹{e['amount']} | {e['cost_head']}" for e in expenses]
         selected = st.selectbox("Select entry to edit or delete", edit_options, key="edit_expense_select")
         if selected:
@@ -197,6 +219,7 @@ def render_view_edit_logs():
             with st.expander("Edit or delete", expanded=True):
                 if st.button("Delete this expense", type="secondary", key=f"del_expense_btn_{expense_id}"):
                     if db.delete_expense(expense_id):
+                        _cached_expenses_df.clear()
                         st.success("Deleted.")
                         st.rerun()
                     else:
@@ -212,6 +235,7 @@ def render_view_edit_logs():
                         if st.form_submit_button("Save changes"):
                             if eamt > 0:
                                 if db.update_expense(expense_id, str(edate), eamt, ehead, edesc):
+                                    _cached_expenses_df.clear()
                                     st.success("Updated.")
                                     st.rerun()
 
@@ -237,15 +261,16 @@ def render_add_expense():
                     cost_head=cost_head,
                     description=description,
                 )
+                _cached_expenses_df.clear()
                 st.success(f"Expense saved! (ID: {row_id})")
 
 
 def render_dashboard():
     st.header("Dashboard")
 
-    orders_df = db.get_orders_df()
-    income_df = db.get_income_df()
-    expenses_df = db.get_expenses_df()
+    orders_df = _cached_orders_df()
+    income_df = _cached_income_df()
+    expenses_df = _cached_expenses_df()
 
     if orders_df.empty and income_df.empty and expenses_df.empty:
         st.info("No data yet. Add orders, income, or expenses to see analytics.")
@@ -280,7 +305,7 @@ def render_dashboard():
                 data=[go.Pie(labels=cost_totals.index.tolist(), values=cost_totals.values.tolist())]
             )
             fig_pie.update_layout(title="Expenses by cost head")
-            st.plotly_chart(fig_pie, width="stretch")
+            st.plotly_chart(fig_pie, use_container_width=True)
         else:
             st.caption("No expenses recorded yet.")
     else:
@@ -346,7 +371,7 @@ def render_dashboard():
             fig.add_trace(go.Bar(x=merged["period"], y=merged["Income"], name="Income", marker_color="#2ecc71"))
             fig.add_trace(go.Bar(x=merged["period"], y=merged["Expenses"], name="Expenses", marker_color="#e74c3c"))
             fig.update_layout(barmode="group", title="Orders vs Income vs Expenses", xaxis_tickangle=-45, yaxis_title="Amount (₹)")
-            st.plotly_chart(fig, width="stretch")
+            st.plotly_chart(fig, use_container_width=True)
         else:
             st.caption("No data to display.")
     else:
@@ -434,7 +459,7 @@ def render_dashboard():
                         }
                     )
                     display_orders["Amount"] = display_orders["Amount"].apply(format_currency)
-                    st.dataframe(display_orders, width="stretch", hide_index=True)
+                    st.dataframe(display_orders, use_container_width=True)
 
             with col2:
                 st.markdown("**Payment history**")
@@ -446,7 +471,7 @@ def render_dashboard():
                         columns={"date": "Date", "amount": "Amount", "payment_method": "Method"}
                     )
                     display_income["Amount"] = display_income["Amount"].apply(format_currency)
-                    st.dataframe(display_income, width="stretch", hide_index=True)
+                    st.dataframe(display_income, use_container_width=True)
 
 
 def main():

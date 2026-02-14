@@ -375,11 +375,36 @@ def render_dashboard():
             merged = pd.DataFrame({"period": sorted(all_periods)})
             merged = merged.merge(by_orders, on="period", how="left").merge(by_income, on="period", how="left").merge(by_expenses, on="period", how="left")
             merged = merged.fillna(0)
+            periods_list = merged["period"].tolist()
             fig = go.Figure()
-            fig.add_trace(go.Bar(x=merged["period"], y=merged["Orders"], name="Orders", marker_color="#3498db"))
-            fig.add_trace(go.Bar(x=merged["period"], y=merged["Income"], name="Income", marker_color="#2ecc71"))
-            fig.add_trace(go.Bar(x=merged["period"], y=merged["Expenses"], name="Expenses", marker_color="#e74c3c"))
-            fig.update_layout(barmode="group", title="Orders vs Income vs Expenses", xaxis_tickangle=-45, yaxis_title="Amount (₹)")
+            fig.add_trace(go.Bar(
+                x=periods_list,
+                y=merged["Orders"].tolist(),
+                name="Orders",
+                marker_color="#3498db",
+                orientation="v",
+            ))
+            fig.add_trace(go.Bar(
+                x=periods_list,
+                y=merged["Income"].tolist(),
+                name="Income",
+                marker_color="#2ecc71",
+                orientation="v",
+            ))
+            fig.add_trace(go.Bar(
+                x=periods_list,
+                y=merged["Expenses"].tolist(),
+                name="Expenses",
+                marker_color="#e74c3c",
+                orientation="v",
+            ))
+            fig.update_layout(
+                barmode="group",
+                title="Orders vs Income vs Expenses",
+                xaxis_title="Period",
+                yaxis_title="Amount (₹)",
+                xaxis_tickangle=-45,
+            )
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.caption("No data to display.")

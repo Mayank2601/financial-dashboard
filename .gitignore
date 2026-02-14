@@ -19,6 +19,9 @@ env/
 # *.xlsx
 # *.xls
 
+# Dairy logger SQLite DB
+dairy_data.db
+
 # OS
 .DS_Store
 Thumbs.db

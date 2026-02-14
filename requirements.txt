@@ -11,4 +11,7 @@ python-dateutil
 tabulate
 streamlit
 altair>=4.0.0,<5.0.0
+# For dairy_logger cloud deployment (Supabase/PostgreSQL)
+sqlalchemy>=2.0
+psycopg2-binary
 
